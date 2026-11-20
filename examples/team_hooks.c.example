@@ -1,0 +1,43 @@
+/* Integration example, deliberately NOT compiled as firmware.
+ * Put these calls in existing team tasks; do not create a second receiver/IMU.
+ * Replace measured_* parameters with installed measurements. */
+#include "team_link.h"
+#include "FS-iA6B.h"
+#include "Quaternion.h"
+
+/* ReceiverTask: called once per new frame AFTER header/length/checksum check.
+ * frame_received_ms is captured at receipt, not each ControlTask iteration. */
+void OnValidatedIbusFrame(unsigned char frame[32], uint32_t frame_received_ms)
+{
+    iBus_Parsing(frame, &iBus);
+    bool failsafe_active = iBus_isActiveFailsafe(&iBus) != 0;
+    /* Verify the team's high-nibble failsafe interpretation with transmitter OFF. */
+    TeamLink_PublishRadio(iBus.LH, iBus.SwC, failsafe_active, frame_received_ms);
+}
+
+/* ImuTask: called after Quaternion_Update on a NEW report. */
+void OnNewAttitude(uint32_t sampled_ms, float measured_level_deg, int measured_sign)
+{
+    float pitch = 0;
+    bool valid = TeamInput_Pitch(BNO080_Pitch, measured_level_deg, measured_sign, &pitch);
+    TeamLink_PublishPitch(pitch, valid, sampled_ms);
+}
+
+/* ManagerTask: one explicitly requested startup attempt, after transport init.
+ * Do not reset these flags on radio loss; the controller handles recovery.
+ * Explicit STOP must NOT be followed by an automatic rearm loop. */
+void StartBuoyancyOnce(void)
+{
+    static bool observe_queued, arm_queued;
+    if (!observe_queued) {
+        observe_queued = TeamLink_RequestObserve();
+        return;
+    }
+    TeamLinkStatus status = TeamLink_ReadStatus();
+    if (!arm_queued && status.active && status.ready_to_arm) {
+        arm_queued = TeamLink_RequestArm();
+    }
+    /* Report status.permit/armed/fault to manager/telemetry.
+     * If a queued ARM is rejected due to a concurrent STOP/input change,
+     * diagnose status and request a new explicit startup attempt. */
+}
