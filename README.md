@@ -27,6 +27,16 @@
 
 ## 실행
 
+새 PC에서는 STM32CubeIDE 1.17.0을 설치하고 저장소 ZIP을 **전체 압축 해제**합니다. 필요한 HAL/CMSIS/FreeRTOS 소스가 포함되어 있어 별도로 생성할 필요가 없습니다.
+
+저장소 루트에서 아래 명령으로 새 워크스페이스를 만들고 클린 빌드할 수 있습니다. 보드 연결은 필요하지 않으며 플래시는 수행하지 않습니다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-Firmware.ps1
+```
+
+설치 경로 지정, Release 빌드와 검증 결과는 [빌드 안내](docs/build.md)에 정리했습니다.
+
 1. STM32CubeIDE 1.17의 Existing Projects into Workspace로 `firmware/updown_dir_control`을 가져옵니다.
 2. Debug 구성을 빌드한 뒤 NUCLEO-G431RB에 다운로드합니다. 디버거가 정지해 있으면 Resume합니다.
 3. 배선은 [연결 문서](docs/wiring.md)를 확인합니다. ST-LINK Virtual COM 포트는 115200 / 8N1입니다.
